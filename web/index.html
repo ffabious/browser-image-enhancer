@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="ru">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Улучшение изображений в браузере</title>
+    <link rel="stylesheet" href="/src/demo/style.css" />
+  </head>
+  <body>
+    <main class="app">
+      <header>
+        <h1>Улучшение изображений в браузере</h1>
+        <p class="subtitle">
+          ML-модель подбирает коррекцию яркости, контрастности и цветности —
+          целиком на вашем устройстве, без отправки на сервер.
+          JPG · PNG · HEIC · BMP, до 15 Мпк.
+        </p>
+      </header>
+
+      <section class="controls">
+        <div id="dropzone" class="dropzone" tabindex="0">
+          <p><strong>Перетащите изображения сюда</strong> или</p>
+          <label class="btn">
+            Выберите файлы
+            <input id="file-input" type="file" accept=".jpg,.jpeg,.png,.heic,.heif,.bmp,image/*" multiple hidden />
+          </label>
+          <p class="hint">Файлы обрабатываются локально и никуда не загружаются</p>
+        </div>
+        <div class="options">
+          <label class="brain-toggle">
+            Алгоритм:
+            <select id="brain-select">
+              <option value="ml" selected>Нейросеть (ML)</option>
+              <option value="heuristic">Эвристика (базовый)</option>
+            </select>
+          </label>
+          <div id="samples" class="samples">
+            <span>Примеры:</span>
+          </div>
+        </div>
+      </section>
+
+      <section id="tasks" class="tasks"></section>
+
+      <section id="bench" class="bench" hidden></section>
+
+      <footer>
+        <p>
+          Учебный проект · обработка в Web Worker ·
+          <a href="./probe.html">страница проверки совместимости</a>
+        </p>
+      </footer>
+    </main>
+    <script type="module" src="/src/demo/main.ts"></script>
+  </body>
+</html>
