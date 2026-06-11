@@ -1,0 +1,80 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+
+      - name: Install web dependencies
+        working-directory: web
+        run: npm ci
+
+      - name: Typecheck + build
+        working-directory: web
+        run: npm run build
+
+      - name: Unit tests (incl. Python↔TS golden contract)
+        working-directory: web
+        run: npm test
+
+      - name: Size budget gate
+        working-directory: web
+        run: npm run size
+
+      - uses: astral-sh/setup-uv@v5
+
+      - name: Python tests
+        working-directory: ml
+        run: |
+          uv sync
+          uv run pytest -q
+
+      - name: E2E fixtures
+        run: |
+          uv run --project ml python scripts/make-fixtures.py
+
+      - name: Playwright (chromium)
+        working-directory: web
+        run: |
+          npx playwright install --with-deps chromium
+          npx playwright test --project=chromium
+
+      - name: Configure Pages
+        if: github.ref == 'refs/heads/main'
+        uses: actions/configure-pages@v5
+        with:
+          enablement: true
+
+      - name: Upload Pages artifact
+        if: github.ref == 'refs/heads/main'
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: web/dist
+
+  deploy:
+    if: github.ref == 'refs/heads/main'
+    needs: test
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4

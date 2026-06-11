@@ -1,0 +1,147 @@
+{
+  "entries": [
+    {
+      "id": "0801",
+      "category": "underexposed",
+      "original": "0801-original.jpg",
+      "degraded": "0801-underexposed.jpg",
+      "factors": [
+        0.55,
+        1.0,
+        0.95
+      ]
+    },
+    {
+      "id": "0802",
+      "category": "overexposed",
+      "original": "0802-original.jpg",
+      "degraded": "0802-overexposed.jpg",
+      "factors": [
+        1.7,
+        1.0,
+        1.0
+      ]
+    },
+    {
+      "id": "0803",
+      "category": "low-contrast",
+      "original": "0803-original.jpg",
+      "degraded": "0803-low-contrast.jpg",
+      "factors": [
+        1.0,
+        0.55,
+        1.0
+      ]
+    },
+    {
+      "id": "0804",
+      "category": "hazy",
+      "original": "0804-original.jpg",
+      "degraded": "0804-hazy.jpg",
+      "factors": [
+        1.15,
+        0.6,
+        0.85
+      ]
+    },
+    {
+      "id": "0805",
+      "category": "desaturated",
+      "original": "0805-original.jpg",
+      "degraded": "0805-desaturated.jpg",
+      "factors": [
+        1.0,
+        1.0,
+        0.45
+      ]
+    },
+    {
+      "id": "0806",
+      "category": "oversaturated",
+      "original": "0806-original.jpg",
+      "degraded": "0806-oversaturated.jpg",
+      "factors": [
+        1.0,
+        1.0,
+        1.7
+      ]
+    },
+    {
+      "id": "0807",
+      "category": "night",
+      "original": "0807-original.jpg",
+      "degraded": "0807-night.jpg",
+      "factors": [
+        0.45,
+        0.85,
+        0.8
+      ]
+    },
+    {
+      "id": "0808",
+      "category": "mixed-dark-flat",
+      "original": "0808-original.jpg",
+      "degraded": "0808-mixed-dark-flat.jpg",
+      "factors": [
+        0.7,
+        0.75,
+        0.85
+      ]
+    },
+    {
+      "id": "0812",
+      "category": "mixed-dark-dull",
+      "original": "0812-original.jpg",
+      "degraded": "0812-mixed-dark-dull.jpg",
+      "factors": [
+        0.6,
+        0.9,
+        0.6
+      ]
+    },
+    {
+      "id": "0813",
+      "category": "mixed-bright-flat",
+      "original": "0813-original.jpg",
+      "degraded": "0813-mixed-bright-flat.jpg",
+      "factors": [
+        1.4,
+        0.7,
+        1.0
+      ]
+    },
+    {
+      "id": "0809",
+      "category": "perfect",
+      "original": "0809-original.jpg",
+      "degraded": "0809-perfect.jpg",
+      "factors": [
+        1.0,
+        1.0,
+        1.0
+      ]
+    },
+    {
+      "id": "0810",
+      "category": "perfect",
+      "original": "0810-original.jpg",
+      "degraded": "0810-perfect.jpg",
+      "factors": [
+        1.0,
+        1.0,
+        1.0
+      ]
+    },
+    {
+      "id": "0811",
+      "category": "perfect",
+      "original": "0811-original.jpg",
+      "degraded": "0811-perfect.jpg",
+      "factors": [
+        1.0,
+        1.0,
+        1.0
+      ]
+    }
+  ]
+}
