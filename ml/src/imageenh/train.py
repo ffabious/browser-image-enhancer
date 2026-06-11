@@ -4,8 +4,10 @@
         --epochs 40 --out runs/
 
 Loss: image-space L1 between apply(degraded, predicted) and the original
-(soft clamp for gradient flow) + aux parameter MSE decayed to 0 over the
-first half of training.
+(soft clamp for gradient flow) + aux parameter MSE decayed over the first
+half of training to a small floor. The floor matters: image L1 alone gives
+almost no gradient for saturation on low-chroma images and lets predictions
+drift off identity on already-good images.
 """
 
 from __future__ import annotations
@@ -26,11 +28,18 @@ AUX_WEIGHT = 0.1
 def main() -> None:
     ap = argparse.ArgumentParser()
     ap.add_argument("--data-dir", type=Path, required=True)
+    ap.add_argument(
+        "--val-dir",
+        type=Path,
+        default=None,
+        help="separate validation image dir; without it --val-frac of --data-dir is held out",
+    )
     ap.add_argument("--out", type=Path, default=Path("runs"))
     ap.add_argument("--epochs", type=int, default=40)
     ap.add_argument("--steps-per-epoch", type=int, default=200)
     ap.add_argument("--batch-size", type=int, default=64)
     ap.add_argument("--lr", type=float, default=1e-3)
+    ap.add_argument("--aux-floor", type=float, default=0.02)
     ap.add_argument("--width-mult", type=float, default=1.0)
     ap.add_argument("--val-frac", type=float, default=0.1)
     ap.add_argument("--seed", type=int, default=0)
@@ -40,9 +49,12 @@ def main() -> None:
     np.random.seed(args.seed)
 
     thumbs = dataset.precompute_thumbs(args.data_dir)
-    n_val = min(max(1, int(len(thumbs) * args.val_frac)), len(thumbs) - 1)
-    val_thumbs, train_thumbs = thumbs[:n_val], thumbs[n_val:]
-    print(f"train images: {len(train_thumbs)}, val images: {n_val}")
+    if args.val_dir is not None:
+        train_thumbs, val_thumbs = thumbs, dataset.precompute_thumbs(args.val_dir)
+    else:
+        n_val = min(max(1, int(len(thumbs) * args.val_frac)), len(thumbs) - 1)
+        val_thumbs, train_thumbs = thumbs[:n_val], thumbs[n_val:]
+    print(f"train images: {len(train_thumbs)}, val images: {len(val_thumbs)}")
 
     train_ds = dataset.make_dataset(train_thumbs, args.batch_size)
     model = build_model(args.width_mult)
@@ -52,6 +64,7 @@ def main() -> None:
     schedule = tf.keras.optimizers.schedules.CosineDecay(args.lr, total_steps)
     optimizer = tf.keras.optimizers.Adam(schedule)
     aux_decay_steps = total_steps / 2
+    aux_floor = args.aux_floor
 
     @tf.function
     def train_step(degraded, original, target_o, step):
@@ -61,7 +74,8 @@ def main() -> None:
             restored = tfmath.soft_clamp(tfmath.apply(degraded, factors))
             img_l1 = tf.reduce_mean(tf.abs(restored - original))
             aux = tf.reduce_mean(tf.square(o - target_o))
-            aux_w = AUX_WEIGHT * tf.maximum(0.0, 1.0 - tf.cast(step, tf.float32) / aux_decay_steps)
+            decay = tf.maximum(0.0, 1.0 - tf.cast(step, tf.float32) / aux_decay_steps)
+            aux_w = aux_floor + (AUX_WEIGHT - aux_floor) * decay
             loss = img_l1 + aux_w * aux
         grads = tape.gradient(loss, model.trainable_variables)
         optimizer.apply_gradients(zip(grads, model.trainable_variables))

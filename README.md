@@ -6,7 +6,9 @@
 цветности**, а быстрый вспомогательный алгоритм (LUT + попиксельное смешивание
 с люмой) применяет их к полноразмерному изображению в Web Worker.
 
-**Демо: см. ссылку на GitHub Pages в описании репозитория.**
+**Демо: <https://ffabious.github.io/browser-image-enhancer/>** (GitHub Pages,
+деплой из CI). Проверка совместимости браузера:
+[probe.html](https://ffabious.github.io/browser-image-enhancer/probe.html).
 
 ## Соответствие требованиям
 
@@ -64,10 +66,12 @@ enhancer.addEventListener('taskstatuschange', (e) => {
 параметрам с затуханием.
 
 ```bash
-scripts/fetch-dataset.sh                 # DIV2K valid (~450 МБ)
+scripts/fetch-dataset.sh --full          # DIV2K train + valid (~4 ГБ)
 cd ml
 uv sync --extra train --extra eval
-uv run --extra train python -m imageenh.train --data-dir data/DIV2K_valid_HR --epochs 40
+uv run --extra train python -m imageenh.train \
+    --data-dir data/DIV2K_train_HR --val-dir data/DIV2K_valid_HR \
+    --epochs 60 --aux-floor 0.05
 uv run --extra train python -m imageenh.export_weights      # → web/public/model/
 uv run --extra train python -m imageenh.export_golden nn    # → web/tests/golden/
 ```
@@ -78,6 +82,13 @@ uv run --extra train python -m imageenh.export_golden nn    # → web/tests/gold
 ml/.venv/bin/python scripts/make-reference-pool.py
 cd ml && uv run --extra train --extra eval python -m imageenh.evaluate
 ```
+
+Итог на эталонном пуле (13 пар «оригинал/деградация»): средний PSNR
+восстановления **28.0 дБ** против 23.0 без обработки и 21.6 у эвристики;
+теоретический предел при точных обратных коэффициентах — 31.2 дБ.
+Средний SSIM **0.93**. На шести категориях модель превосходит даже точную
+инверсию: выученная коррекция компенсирует потери от клиппинга и
+квантования, которые точная инверсия лишь усиливает.
 
 ## Разработка
 

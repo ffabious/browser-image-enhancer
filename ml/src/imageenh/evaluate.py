@@ -1,7 +1,10 @@
 """Quality evaluation over the reference pool (brief step 6).
 
-Compares three pipelines on every (original, degraded) pair:
+Compares four pipelines on every (original, degraded) pair:
   none      — the degraded image as-is (lower bound)
+  oracle    — restoration with the exact inverse factors (upper bound:
+              what a perfect predictor could achieve given clipping and
+              quantization losses in the degraded image)
   heuristic — the browser's baseline brain
   ml        — the trained CNN (with fp16-rounded weights, as deployed)
 
@@ -74,6 +77,7 @@ def main() -> None:
 
     brains = {
         "none": lambda thumb: (1.0, 1.0, 1.0),
+        "oracle": None,  # set per entry from the manifest factors
         "heuristic": heuristic_factors,
         "ml": predict_ml,
     }
@@ -88,6 +92,8 @@ def main() -> None:
         is_perfect = entry["category"] == "perfect"
 
         row = {"id": entry["id"], "category": entry["category"]}
+        beta_d, gamma_d, sigma_d = entry["factors"]
+        brains["oracle"] = lambda thumb: (1 / beta_d, 1 / gamma_d, 1 / sigma_d)
         for name, brain in brains.items():
             factors = brain(thumb)
             restored = colormath.apply_u8(degraded, *factors)
@@ -95,7 +101,7 @@ def main() -> None:
             row[f"{name}_ssim"] = ssim(restored, original)
             agg[name]["psnr"].append(row[f"{name}_psnr"])
             agg[name]["ssim"].append(row[f"{name}_ssim"])
-            if name != "none":
+            if name in ("heuristic", "ml"):
                 # Correction should invert the degradation: predicted o vs -true o.
                 pred_o = colormath.output_from_factors(*factors)
                 mae = float(np.mean(np.abs(pred_o - np.clip(-true_o, -1, 1))))
@@ -108,38 +114,46 @@ def main() -> None:
         rows.append(row)
         print(
             f"{entry['id']:>5} {entry['category']:<18} "
-            f"none {row['none_psnr']:5.1f} dB | heur {row['heuristic_psnr']:5.1f} dB | "
-            f"ml {row['ml_psnr']:5.1f} dB"
+            f"none {row['none_psnr']:5.1f} dB | oracle {row['oracle_psnr']:5.1f} dB | "
+            f"heur {row['heuristic_psnr']:5.1f} dB | ml {row['ml_psnr']:5.1f} dB"
         )
 
     lines = [
         "# Отчёт об оценке качества",
         "",
         "Метрики по эталонному пулу (`reference-images/`): восстановление",
-        "деградированных изображений тремя вариантами «мозга». PSNR/SSIM считаются",
-        "относительно исходного (неиспорченного) изображения.",
+        "деградированных изображений. PSNR/SSIM считаются относительно исходного",
+        "(неиспорченного) изображения. «Оракул» — восстановление точными обратными",
+        "коэффициентами: верхняя граница достижимого качества с учётом потерь",
+        "от клиппинга и квантования в деградированном изображении.",
         "",
-        "| ID | Категория | PSNR без обработки | PSNR эвристика | PSNR ML | SSIM ML |",
-        "|---|---|---|---|---|---|",
+        "| ID | Категория | PSNR без обработки | PSNR оракул | PSNR эвристика | PSNR ML | SSIM ML |",
+        "|---|---|---|---|---|---|---|",
     ]
     for r in rows:
         lines.append(
-            f"| {r['id']} | {r['category']} | {r['none_psnr']:.1f} | "
+            f"| {r['id']} | {r['category']} | {r['none_psnr']:.1f} | {r['oracle_psnr']:.1f} | "
             f"{r['heuristic_psnr']:.1f} | {r['ml_psnr']:.1f} | {r['ml_ssim']:.3f} |"
         )
-    lines += ["", "## Сводка", "", "| Метрика | без обработки | эвристика | ML |", "|---|---|---|---|"]
+    lines += [
+        "",
+        "## Сводка",
+        "",
+        "| Метрика | без обработки | оракул | эвристика | ML |",
+        "|---|---|---|---|---|",
+    ]
     for metric in ("psnr", "ssim"):
-        vals = [np.mean(agg[n][metric]) for n in ("none", "heuristic", "ml")]
+        vals = [np.mean(agg[n][metric]) for n in ("none", "oracle", "heuristic", "ml")]
         fmt = "{:.2f}" if metric == "psnr" else "{:.4f}"
         lines.append(
             f"| средний {metric.upper()} | " + " | ".join(fmt.format(v) for v in vals) + " |"
         )
     lines.append(
-        f"| MAE параметров (лог-пространство) | — | "
+        f"| MAE параметров (лог-пространство) | — | 0 | "
         f"{np.mean(agg['heuristic']['param_mae']):.3f} | {np.mean(agg['ml']['param_mae']):.3f} |"
     )
     lines.append(
-        f"| Identity safety, средний |Δ| на «perfect», уровней | — | "
+        f"| Identity safety, средний \\|Δ\\| на «perfect», уровней | — | 0 | "
         f"{np.mean(agg['heuristic']['identity_delta']):.2f} | "
         f"{np.mean(agg['ml']['identity_delta']):.2f} |"
     )
