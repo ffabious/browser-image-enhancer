@@ -38,6 +38,16 @@ for (const name of FORMATS) {
     const card = page.locator('.task').first();
     await expect(card.locator('.task-status.done')).toBeVisible({ timeout: 60_000 });
     await expect(card.locator('.compare img.after')).toBeVisible();
+    // Both comparison sides must actually render (HEIC/BMP "before" needs a
+    // re-encoded preview in browsers that can't display the original file).
+    for (const sel of ['img.after', '.before-wrap img']) {
+      await expect
+        .poll(() => card.locator(sel).evaluate((el) => (el as HTMLImageElement).naturalWidth))
+        .toBeGreaterThan(0);
+    }
+    const beforeSrc = await card.locator('.before-wrap img').getAttribute('src');
+    const afterSrc = await card.locator('img.after').getAttribute('src');
+    expect(beforeSrc, 'before and after must show different images').not.toBe(afterSrc);
     // The (β, γ, σ) readout proves the full pipeline ran.
     await expect(card.locator('.task-meta')).toContainText('яркость');
   });

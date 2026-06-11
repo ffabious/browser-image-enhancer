@@ -10,6 +10,12 @@ export interface DecodedImage {
   image: ImageData;
   /** 224×224 aspect-ignoring squash used by the parameter-prediction brain. */
   thumb: ImageData;
+  /**
+   * False when decoding needed a fallback decoder (libheif, BMP): an <img>
+   * pointing at the original file would not render in this browser, so UIs
+   * need a re-encoded preview to show the "before" state.
+   */
+  displayable: boolean;
 }
 
 export const THUMB_SIZE = 224;
@@ -38,7 +44,7 @@ function fromRgba(
   // path the native-decode branch uses.
   const canvas = new OffscreenCanvas(width, height);
   get2d(canvas).putImageData(image, 0, 0);
-  return { format, width, height, image, thumb: thumbFromBitmap(canvas) };
+  return { format, width, height, image, thumb: thumbFromBitmap(canvas), displayable: false };
 }
 
 /** Decode an image file (any supported format) into full-res RGBA + thumb. */
@@ -72,7 +78,7 @@ export async function decodeImage(buffer: ArrayBuffer): Promise<DecodedImage> {
     ctx.drawImage(bitmap, 0, 0);
     const image = ctx.getImageData(0, 0, width, height);
     const thumb = thumbFromBitmap(bitmap);
-    return { format, width, height, image, thumb };
+    return { format, width, height, image, thumb, displayable: true };
   } finally {
     bitmap.close();
   }

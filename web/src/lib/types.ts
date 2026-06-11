@@ -37,6 +37,9 @@ export interface TaskDetails {
   width?: number;
   height?: number;
   brain?: BrainKind;
+  /** Re-encoded original, present only when the input file itself cannot be
+      rendered by an <img> in this browser (HEIC/BMP fallback decode paths). */
+  beforePreview?: Blob;
 }
 
 export type WorkerRequest =
@@ -46,6 +49,12 @@ export type WorkerRequest =
 
 export type WorkerResponse =
   | { type: 'progress'; taskId: string; status: TaskStatus; progress: number }
-  | { type: 'done'; taskId: string; blob: Blob; details: Required<Omit<TaskDetails, 'brain'>> & { brain: BrainKind } }
+  | {
+      type: 'done';
+      taskId: string;
+      blob: Blob;
+      details: Required<Omit<TaskDetails, 'brain' | 'beforePreview'>> &
+        Pick<TaskDetails, 'beforePreview'> & { brain: BrainKind };
+    }
   | { type: 'error'; taskId: string; message: string }
   | { type: 'cancelled'; taskId: string };

@@ -50,6 +50,17 @@ async function process(taskId: string, buffer: ArrayBuffer, brain: BrainKind): P
   const decoded = await decodeImage(buffer);
   lap('decode');
 
+  // When the browser can't render the original file in an <img> (HEIC via
+  // libheif, BMP via the fallback decoder), re-encode the still-untouched
+  // pixels so the UI has a "before" preview. Must happen before the enhance
+  // stage mutates the buffer in place.
+  let beforePreview: Blob | undefined;
+  if (!decoded.displayable) {
+    await checkpoint(taskId, 'decoding', 15);
+    beforePreview = await encodeImage(decoded.image, decoded.format);
+    lap('preview');
+  }
+
   await checkpoint(taskId, 'analyzing', 20);
   let factors: Factors;
   let usedBrain = brain;
@@ -92,6 +103,7 @@ async function process(taskId: string, buffer: ArrayBuffer, brain: BrainKind): P
       width: decoded.width,
       height: decoded.height,
       brain: usedBrain,
+      beforePreview,
     },
   });
 }

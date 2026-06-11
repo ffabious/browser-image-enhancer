@@ -88,14 +88,19 @@ function renderDone(id: string, view: TaskView): void {
   const compare = document.createElement('div');
   compare.className = 'compare';
   compare.innerHTML = `
-    <img class="after" alt="После обработки" />
-    <div class="before-wrap"><img alt="До обработки" /></div>
+    <img class="after" alt="" />
+    <div class="before-wrap"><img alt="" /></div>
     <div class="divider"></div>
     <span class="tag before">до</span>
     <span class="tag after">после</span>
     <input type="range" min="0" max="100" value="50" aria-label="Сравнение до/после" />`;
   compare.querySelector<HTMLImageElement>('.after')!.src = resultUrl;
-  compare.querySelector<HTMLImageElement>('.before-wrap img')!.src = view.originalUrl;
+  // HEIC/BMP fallback inputs can't be shown by <img> directly — the worker
+  // supplies a re-encoded preview of the original in that case.
+  const beforeUrl = details?.beforePreview
+    ? URL.createObjectURL(details.beforePreview)
+    : view.originalUrl;
+  compare.querySelector<HTMLImageElement>('.before-wrap img')!.src = beforeUrl;
   const beforeWrap = compare.querySelector<HTMLElement>('.before-wrap')!;
   const divider = compare.querySelector<HTMLElement>('.divider')!;
   const slider = compare.querySelector<HTMLInputElement>('input')!;
