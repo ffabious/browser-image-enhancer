@@ -1,0 +1,19 @@
+# Node
+node_modules/
+web/dist/
+web/playwright-report/
+web/test-results/
+web/e2e/fixtures/generated/
+
+# Python
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+ml/runs/
+ml/data/
+*.thumbs.npy
+
+# OS / editors
+.DS_Store
+*.swp
